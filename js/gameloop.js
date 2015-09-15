@@ -1,0 +1,43 @@
+/************************* Global Vars *************************/
+GLOBALS = {
+	keyboard : new THREEx.KeyboardState(),
+	renderer : new THREE.WebGLRenderer({
+		antialias : true,
+		alpha : true		
+	}),
+	scene : new THREE.Scene(),
+	camera : null,
+	playerName : "player_" + new Date().getTime(),
+	screenDimensions : new THREE.Vector2(window.innerWidth*0.8,window.innerHeight)
+};
+/***************************************************************/
+
+function setup() {
+	//GLOBALS.renderer.setSize( window.innerWidth, window.innerHeight); 
+	//GLOBALS.renderer.domElement = ;
+	GLOBALS.renderer.setSize( GLOBALS.screenDimensions.x, GLOBALS.screenDimensions.y); 
+	GLOBALS.renderer.autoClear = true;
+	GLOBALS.renderer.setClearColor(new THREE.Color(0,0,0), 1);
+	document.body.appendChild( GLOBALS.renderer.domElement );	
+
+	Networking.Initialise();
+	GAMESCENE.Setup();
+}
+
+function update() {
+	UTILS.updateSimulation(function(deltaTime) {
+		// do update here
+		GAMESCENE.Update(deltaTime);		
+	});
+}
+
+function mainLoop() {
+	requestAnimationFrame( mainLoop );
+	update();
+	GLOBALS.renderer.render(GLOBALS.scene, GLOBALS.camera.camera);
+}
+
+// setup and start the game
+setup();
+mainLoop();
+
