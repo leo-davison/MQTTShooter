@@ -29,8 +29,7 @@ function TriangleShip(colour, transformDelegate) {
 			var dataObj = {
 				pos: fireObj.pos,
 				vel : fireObj.vel
-			};
-			Networking.SendProjectileCreateEvent(dataObj);
+			};			
 		}
 	}
 

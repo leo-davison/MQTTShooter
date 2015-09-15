@@ -70,15 +70,6 @@ function LocalShipDelegate() {
 				this.shouldFire = true;				
 			}
 		}
-
-		// send updates to the network
-		var dataObj = {
-			name : GLOBALS.playerName,
-			pos : this.position,
-			rot : this.rotation
-		};
-
-		Networking.SendPlayerUpdate(dataObj);
 	};
 
 	// access the current position
