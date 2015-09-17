@@ -8,26 +8,25 @@ GLOBALS = {
 	scene : new THREE.Scene(),
 	camera : null,
 	playerName : "player_" + new Date().getTime(),
-	screenDimensions : new THREE.Vector2(window.innerWidth*0.8,window.innerHeight)
+	screenDimensions : new THREE.Vector2(window.innerWidth,window.innerHeight)
 };
 /***************************************************************/
 
 function setup() {
-	//GLOBALS.renderer.setSize( window.innerWidth, window.innerHeight); 
-	//GLOBALS.renderer.domElement = ;
 	GLOBALS.renderer.setSize( GLOBALS.screenDimensions.x, GLOBALS.screenDimensions.y); 
 	GLOBALS.renderer.autoClear = true;
 	GLOBALS.renderer.setClearColor(new THREE.Color(0,0,0), 1);
 	document.body.appendChild( GLOBALS.renderer.domElement );	
 
-	Networking.Initialise();
 	GAMESCENE.Setup();
+	Networking.Initialise();
 }
 
 function update() {
 	UTILS.updateSimulation(function(deltaTime) {
 		// do update here
-		GAMESCENE.Update(deltaTime);		
+		GAMESCENE.Update(deltaTime);
+		Networking.Update(deltaTime);	
 	});
 }
 

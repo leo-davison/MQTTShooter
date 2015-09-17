@@ -59,10 +59,6 @@ function Projectile(startPos, velocity, originator) {
 	this.lastPosition = new THREE.Vector2(this.mesh.position.x, this.mesh.position.y);
 	// note who fired this projectile (to avoid friendly fire...)
 	this.originator = originator;
-
-	// setup collider object for collision detection
-	this.collider = new Collision.CollisionMesh(Collision.MeshType.POINT, this);
-	Collision.CollisionManager.AddCollider(this.collider);
 	
 	// add the visual representation to the scene
 	GLOBALS.scene.add(this.mesh);	
@@ -87,7 +83,6 @@ function Projectile(startPos, velocity, originator) {
 		if (done) {
 			this.alive = false;
 			GLOBALS.scene.remove(this.mesh);
-			Collision.CollisionManager.RemoveCollider(this.collider);
 		}
 	};
 
@@ -99,25 +94,10 @@ function Projectile(startPos, velocity, originator) {
 		return this.lastPosition;
 	};
 
-	this.onCollision = function(otherCollider) {
-		if (otherCollider.parent === this.originator) {
-			// ignore collisions with the object that
-			// fired us...
-			return;
-		}
-
-		// is the ship in play?
-		if (otherCollider.parent.active === false) {
-			return;
-		}
-
-		// remove the projectile and reset the ship
+	this.onCollision = function() {
+		// remove the projectile
 		this.alive = false;
 		GLOBALS.scene.remove(this.mesh);
-		Collision.CollisionManager.RemoveCollider(this.collider);		
-		otherCollider.parent.reset();
-		// add a simple particle effect
-		var explosion = new Particles.Utils.ParticleExplosion(this.mesh.position, 150);
 	}
 };
 /*****************************************************************************************/

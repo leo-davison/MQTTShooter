@@ -80,14 +80,18 @@ Particles.Particle = function(position, velocity, life) {
 	}
 
 	this.update = function(delta) {
+		if (this.alive === false) {
+			return;
+		}
+
 		this.mesh.position.x += (this.velocity.x * delta);
 		this.mesh.position.y += (this.velocity.y * delta);
 		this.life -= delta;
 
 		if (this.life <= 0) {
-			this.alive = false;
 			GLOBALS.scene.remove(this.mesh);
-			Particles.ParticleManager.ReturnParticle(this);
+			Particles.ParticleManager.ReturnParticle(this);	
+			this.alive = false;
 		}
 	}
 };
@@ -105,7 +109,7 @@ Particles.Utils.ParticleExplosion = function(position, numParticles) {
 		vel.multiplyScalar(THREE.Math.randFloat(50,200));
 		vel.applyAxisAngle(new THREE.Vector3(0,0,1), THREE.Math.degToRad(THREE.Math.randFloat(0,360)));
 
-		return Particles.ParticleManager.GetParticle(position, vel, THREE.Math.randFloat(0,1)); //new Particles.Particle(position, vel, THREE.Math.randFloat(0,1));
+		return Particles.ParticleManager.GetParticle(position, vel, THREE.Math.randFloat(0,1));
 	};
 
 	for (i=0; i<numParticles; i++) {
@@ -115,7 +119,11 @@ Particles.Utils.ParticleExplosion = function(position, numParticles) {
 	// add to manager for update/tracking
 	Particles.ParticleManager.AddSystem(this);	
 
-	this.update = function(delta) {		
+	this.update = function(delta) {
+		if (this.done) {
+			return;
+		}
+
 		var anyAlive = false;
 
 		for (var i=0; i<this.particles.length; i++) {

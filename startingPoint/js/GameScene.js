@@ -1,6 +1,6 @@
 var GAMESCENE = {
-	// list of all the ships in the scene
-	triShips : [],
+	// map of ships in the scene by name
+	triShips : {},
 
 	// reference to the local player ship
 	localPlayer : null,
@@ -21,11 +21,25 @@ var GAMESCENE = {
 		GLOBALS.scene.add( gridHelper );
 
 		// setup a local player
-		this.localPlayer = GAMESCENE.AddTriangleShip(0x1fb4da, new LocalShipDelegate());
+		this.localPlayer = new TriangleShip(GLOBALS.playerName, 0x1fb4da);
+		this.AddTriangleShip(this.localPlayer);
+
+		// test ship for target practice
+		var extraPlayer = new TriangleShip("bob", 0xff0000);
+		extraPlayer.update = function() {};
+		extraPlayer.triangle.setRotation(45);
+		extraPlayer.triangle.setPosition(new THREE.Vector2(-350, -360));
+		this.AddTriangleShip(extraPlayer);
+
+		var extraPlayer2 = new TriangleShip("bob2", 0xff0000);
+		extraPlayer2.update = function() {};
+		extraPlayer2.triangle.setRotation(75);
+		extraPlayer2.triangle.setPosition(new THREE.Vector2(-150, -460));
+		this.AddTriangleShip(extraPlayer2);
 
 		// setup the camera
 		GLOBALS.camera = new ChaseCam(30);
-		GLOBALS.camera.setTarget(this.localPlayer.transformDelegate);
+		GLOBALS.camera.setTarget(this.localPlayer.triangle);
 
 		// setup the game bounds object
 		this.bounds = new Bounds(5000, 5000);
@@ -33,12 +47,17 @@ var GAMESCENE = {
 
 	// update the scene
 	Update : function(deltaTime) {
-		var shipArray = [this.localPlayer.transformDelegate];
+
+		var shipArray = [this.localPlayer.triangle];
+
 		// update the bounding area
 		this.bounds.update(shipArray);
+
 		// update all the ships
-		for (var i=0; i<this.triShips.length; i++) {
-			this.triShips[i].update(deltaTime);
+		for (var ship in this.triShips) {
+			if (this.triShips.hasOwnProperty(ship)) {
+				this.triShips[ship].update(deltaTime);
+			}
 		}
 
 		// update the camera
@@ -50,35 +69,97 @@ var GAMESCENE = {
 		// update all the projectiles in the scene
 		ProjectileManager.update(deltaTime);
 
-		// perform collision detection
-		Collision.CollisionManager.Update(deltaTime);
+		// perform collision detection between projectiles and ships
+		this.PerformCollisionDetection();
+		
 
 		// update particle effects
 		Particles.ParticleManager.Update(deltaTime);
 	},
 
-	// create a new triship and add it to the scene
-	AddTriangleShip : function(colour, positionDelegate) {
-		var ship = new TriangleShip(colour, positionDelegate);
-		this.triShips.push(ship);
-		return ship;
+	// add a given ship to the scene
+	AddTriangleShip : function(ship) {
+		this.triShips[ship.name] = ship;
+		// if this is a ship other than the local player,
+		// add an enemy arrow pointer
+		if (ship !== this.localPlayer) {
+			var arrow = new EnemyArrows.EnemyArrow(ship);
+			EnemyArrows.ArrowManager.AddArrow(arrow);
+		}
 	},
 
-	RemoveTriangleShip : function(obj) {
-		var index = -1;
+	// remove a given ship from the scene
+	RemoveTriangleShip : function(ship) {
+		if (this.triShips.hasOwnProperty(ship.name)) {
+			delete this.triShips[ship.name];
+		}
+	},
 
-		for (var i=0; i<this.triShips.length; i++) {
-			if (this.triShips[i] === obj) {
-				index = i;
-				break;
+	PerformCollisionDetection : function() {
+		// list of projectiles that have collided with ships
+		var collidedProjectiles = {};
+		// list of ships in collision
+		var collidedShips = {};
+
+		for (var i=0; i<ProjectileManager.allProjectiles.length; i++) {
+			var nextProjectile = ProjectileManager.allProjectiles[i];
+
+			// check against all ships
+			var j = 0;
+			for (var shipName in this.triShips) {
+				if (this.triShips.hasOwnProperty(shipName)) {
+ 
+					// ignore collisions with the originator of this projectile.					
+					if (shipName === nextProjectile.originator) {
+						//console.log("ignoring potential collision with originator");
+						continue;
+					}
+
+					var nextShip = this.triShips[shipName];
+
+					// also ignore collisions against inactive ships
+					if (nextShip.active === false) {
+						//console.log("ignoring potential collision with inactive ship.");
+						continue;
+					}
+
+					// grab the transformed triangle geometry
+					var tri = nextShip.getTriangle();
+
+					// perform line segment / triangle intersection test.
+					// this checks if the line formed by the projectiles last position, and it's current position
+					// intersect with the triangle of the ship.  This is done to prevent 'tunnelling' of the projectile,
+					// whereby it could move from one side of the tri to the other between updates.
+					if (UTILS.intersecting(nextProjectile.getLastPosition(), nextProjectile.getPosition(), tri.a, tri.b, tri.c)) {
+						// we have a collision...
+
+						// create a particle effect
+						var explosion = new Particles.Utils.ParticleExplosion(nextProjectile.getPosition(), 150);
+
+						// note the projectile/ship in collision lists
+						collidedProjectiles[i] = nextProjectile;
+						collidedShips[j] = nextShip;
+
+						// we will keep checking in case there are multiple colocated ships.
+					}
+
+					j++;
+				}
+			}			
+		}
+
+		// for each projectile involved in a collision, it needs to be marked as dead
+		for (var projIndex in collidedProjectiles) {
+			if (collidedProjectiles.hasOwnProperty(projIndex)) {
+				collidedProjectiles[projIndex].onCollision();
 			}
 		}
 
-		if (index !== -1) {
-			this.triShips[i].permaDead = true;
-			this.triShips[i].reset();
-			this.triShips.splice(index,1);
-			console.log("removes tri ship");
+		// each ship involved in a collision needs to be reset
+		for (var shipIndex in collidedShips) {
+			if (collidedShips.hasOwnProperty(shipIndex)) {
+				collidedShips[shipIndex].reset();
+			}
 		}
 	}
 };

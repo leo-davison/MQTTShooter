@@ -2,7 +2,10 @@
 	<head>
 		<title>MQTT Project</title>
 		<style>
-			body { margin: 0; background-color: black;}	
+			body { 
+				margin: 0;
+				background-color: black;
+			}	
 
 			#info-panel {
 				float: left;
@@ -13,37 +16,56 @@
 				color: white;
 			}
 
-			canvas { float:right; border-left-style: solid; border-color: white; border-left-width: 1px; }
+			canvas { 
+				float:right;
+				border-left-style: solid;
+				border-color: white;
+				border-left-width: 1px;
+			}
+
+			td#enemyPlayer {
+				color: red;
+				border-right-style: solid;
+				border-color: white;
+				border-right-width: 1px;
+				padding-right: 2px;
+			}
+
+			td#playerName {
+				color: #1fb4da;
+				border-right-style: solid;
+				border-color: white;
+				border-right-width: 1px;
+			}
+
+			td {
+				color: white;
+			}
 		</style>
 	</head>
 
-	<body>		
-		<script src="js/mqttws31.js"></script>		
-		<script src="js/three.min.js"></script>
-		<script src='js/threex.keyboardstate.js'></script>
+	<body>
+		<!--<div id="info-panel">
+			<h1 id="info-title">Info</h1>
+			<table id="playerScoreTable">
+			</table>
+		</div>-->
+
+		<script src="js/thirdparty/mqttws31.js"></script>		
+		<script src="js/thirdparty/three.min.js"></script>		
+		<script src='js/thirdparty/threex.keyboardstate.js'></script>
 		<script src="js/utils.js"></script>
-		<script src="js/Collision.js"></script>
-		<script src="js/MQTTUtils.js"></script>
 		<script src="js/ChaseCam.js"></script>
-		<script src="js/EnemyArrow.js"></script>
 		<script src="js/Bounds.js"></script>
-		<script src="js/RemoteShipDelegate.js"></script>
-		<script src="js/GameNetworking.js"></script>
 		<script src="js/Particles.js"></script>
 		<script src="js/Projectile.js"></script>
-		<script src="js/Triangle.js"></script>
-		<script src="js/LocalShipDelegate.js"></script>		
+		<script src="js/Triangle.js"></script>	
 		<script src="js/TriangleShip.js"></script>
+		<script src="js/EnemyArrow.js"></script>
 		<script src="js/GameScene.js"></script>
-		<script src="js/gameloop.js"></script>		
-
-		<div id="info-panel">
-			<h1 id="info-title">Info</h1>		
-		</div>
+		<script src="js/Networking/MQTTClient.js"></script>
+		<script src="js/Networking/GameNetworkComponent.js"></script>
+		<script src="js/gameloop.js"></script>				
 	</body>
 
 </html>
-
-<!--
-	canvas { width: 200px; height: 100px; }	
- -->

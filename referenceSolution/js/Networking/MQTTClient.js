@@ -1,6 +1,6 @@
-var MQTTUtils = MQTTUtils || {};
+var MQTTClient = MQTTClient || {};
 
-MQTTUtils.MessageHandlers = {
+MQTTClient.MessageHandlers = {
 	handlers : [],
 
 	AddHandler : function(callback) {
@@ -28,13 +28,13 @@ MQTTUtils.MessageHandlers = {
 	}
 };
 
-MQTTUtils.CreateWillMessage = function(topic, msgData) {
+MQTTClient.CreateWillMessage = function(topic, msgData) {
 	var msg = new Paho.MQTT.Message(msgData);
 	msg.destinationName = topic;
 	return msg;
 }
 
-MQTTUtils.Client = {
+MQTTClient.Client = {
 	clientID : null,
 	clientObj : null,
 	connected : false,
@@ -45,7 +45,7 @@ MQTTUtils.Client = {
 		this.client.onConnectionLost = this.onConnectionLost;
 		this.client.onMessageArrived = this.onMessage;
 
-		var connectOpts = {onSuccess: function() { MQTTUtils.Client.connected = true; callback();}};
+		var connectOpts = {onSuccess: function() { MQTTClient.Client.connected = true; callback();}};
 
 		if (willMessage !== null) {
 			connectOpts.willMessage = willMessage;
@@ -62,18 +62,23 @@ MQTTUtils.Client = {
 		this.client.unsubscribe(topic);		
 	},
 
-	PublishMessage : function(topic, messageData) {
+	PublishMessage : function(topic, messageData, retained) {
 		if (this.connected === false) {
 			return;
 		}		
 		var msg = new Paho.MQTT.Message(messageData);
 		msg.qos = 0;
 		msg.destinationName = topic;
+
+		if (retained !== undefined) {
+			msg.retained = retained;
+		}
+
 		this.client.send(msg);
 	},
 
 	onMessage : function(message) {
-		MQTTUtils.MessageHandlers.handleMessage(message);
+		MQTTClient.MessageHandlers.handleMessage(message);
 	},
 
 	onConnectionLost : function(responseObject) {

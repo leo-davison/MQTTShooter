@@ -29,12 +29,12 @@ EnemyArrows.ArrowManager = {
 	}
 };
 
-EnemyArrows.EnemyArrow = function(remoteTri) {
-	this.other = remoteTri;
+EnemyArrows.EnemyArrow = function(enemyTri) {
+	this.other = enemyTri;
 	this.local = GAMESCENE.localPlayer;
 
-	var otherPos = this.other.transformDelegate.getPosition();
-	var localPos = this.local.transformDelegate.getPosition();
+	var otherPos = this.other.triangle.getPosition();
+	var localPos = this.local.triangle.getPosition();
 
 	var direction = new THREE.Vector3(
 		otherPos.x - localPos.x,
@@ -66,8 +66,8 @@ EnemyArrows.EnemyArrow = function(remoteTri) {
 			}
 		}
 
-		var otherPos = this.other.transformDelegate.getPosition();
-		var localPos = this.local.transformDelegate.getPosition();
+		var otherPos = this.other.triangle.getPosition();
+		var localPos = this.local.triangle.getPosition();
 
 		var direction = new THREE.Vector3(
 			otherPos.x - localPos.x,
