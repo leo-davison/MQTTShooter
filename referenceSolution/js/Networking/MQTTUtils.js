@@ -1,18 +1,12 @@
 var MQTTUtils = MQTTUtils || {};
 
-MQTTUtils.CreateWillMessage = function(topic, msgData) {
-	var msg = new Paho.MQTT.Message(msgData);
-	msg.destinationName = topic;
-	return msg;
-}
-
 MQTTUtils.Client = {
 	clientID : null,
 	clientObj : null,
 	connected : false,
 	messageHandler : null,
 
-	ConnectToServer : function(clientID, server, port, willMessage, callback) {
+	ConnectToServer : function(clientID, server, port, callback, willTopic, willData) {
 		this.clientID = clientID;
 		this.client = new Paho.MQTT.Client(server, port, clientID);
 		this.client.onConnectionLost = this.onConnectionLost;
@@ -20,7 +14,13 @@ MQTTUtils.Client = {
 
 		var connectOpts = {onSuccess: function() { MQTTUtils.Client.connected = true; callback();}};
 
-		if (willMessage !== null) {
+		if (typeof willTopic !== "undefined" && 
+			willTopic !== null &&
+			typeof willData !== "undefined" &&
+			willData !== null) {
+			var willMessage = new Paho.MQTT.Message(willData);
+			willMessage.destinationName = willTopic;
+
 			connectOpts.willMessage = willMessage;
 		}
 

@@ -1,5 +1,9 @@
 var Networking = Networking || {};
 
+Networking.gameName = "game_mygamename";
+Networking.server = "bandicoot0.hursley.ibm.com";
+Networking.port = 20004;
+
 // data structure tracking remote players
 Networking.RemotePlayers = {
 
@@ -43,15 +47,12 @@ Networking.Initialise = function() {
 	// register message handler
 	MQTTUtils.Client.SetMessageHandler(Networking.MessageReceived);	
 
-	// configure a will message
-	var willMsg = MQTTUtils.CreateWillMessage("/game/state/removed/"+GLOBALS.playerName, GLOBALS.playerName);
-
 	// connect to the broker
-	MQTTUtils.Client.ConnectToServer(GLOBALS.playerName, "bandicoot0.hursley.ibm.com", 20004, willMsg, function() {
+	MQTTUtils.Client.ConnectToServer(GLOBALS.playerName, Networking.server, Networking.port, function() {
 		console.log("on connect");
 		// on connect, subscribe to all game state topics
-		MQTTUtils.Client.SubscribeToTopic("/game/state/#");
-	});
+		MQTTUtils.Client.SubscribeToTopic("/"+Networking.gameName+"/state/#");
+	}, "/"+Networking.gameName+"/state/removed/"+GLOBALS.playerName, GLOBALS.playerName);
 
 	// grab a ref to the current addProjectile function
 	var addProjectileFunc = ProjectileManager.addProjectile;
@@ -59,14 +60,13 @@ Networking.Initialise = function() {
 	ProjectileManager.originalAddProjectile = addProjectileFunc;
 	// override the addProjectile function with our own interceptor
 	ProjectileManager.addProjectile = function(startPos, velocity, originator) {
-		if (originator === GLOBALS.playerName) {
-			console.log("Send projectile to network");
+		if (originator === GLOBALS.playerName) {	
 			var dataObj = {
 				pos: startPos,
 				vel : velocity
 			};
 			// send to the network
-			MQTTUtils.Client.PublishMessage("/game/state/projectiles/"+GLOBALS.playerName, JSON.stringify(dataObj));
+			MQTTUtils.Client.PublishMessage("/"+Networking.gameName+"/state/projectiles/"+GLOBALS.playerName, JSON.stringify(dataObj));
 
 			// call through to the original function
 			ProjectileManager.originalAddProjectile(startPos, velocity, originator);
@@ -87,7 +87,7 @@ Networking.MessageReceived = function(message) {
 	}
 
 	// is this a player update message?
-	if (topic.indexOf("/game/state/players") >= 0) {								
+	if (topic.indexOf("/"+Networking.gameName+"/state/players") >= 0) {								
 
 		// do we have a handler for this player?
 		if (Networking.RemotePlayers.hasOwnProperty(remoteName) === false) {
@@ -118,7 +118,7 @@ Networking.MessageReceived = function(message) {
 	}
 
 	// is this a player exit message?
-	if (topic.indexOf("/game/state/removed") >= 0) {
+	if (topic.indexOf("/"+Networking.gameName+"/state/removed") >= 0) {
 		console.log("remove player " + remoteName);
 		// grab a reference to the ship object
 		var ship = Networking.RemotePlayers.getShipRef(remoteName);
@@ -134,18 +134,11 @@ Networking.MessageReceived = function(message) {
 	}
 
 	// is this a projectile event?
-	if (topic.indexOf("/game/state/projectiles") >= 0) {
+	if (topic.indexOf("/"+Networking.gameName+"/state/projectiles") >= 0) {
 		var dataObj = JSON.parse(message.payloadString);
 		// call through to original method, bypassing our redirect...
 		ProjectileManager.originalAddProjectile(dataObj.pos, dataObj.vel, remoteName);
 		return;
-	}
-
-	if (topic.indexOf("/game/state/scores") >= 0) {
-		var parts = topic.split("/");
-		var remoteName = parts[parts.length-1];
-		var score = message.payloadString;
-		//InterfaceUtils.updatePlayerScore(remoteName,score);
 	}
 };
 
@@ -168,5 +161,5 @@ Networking.Update = function(deltaTime) {
 	};
 
 	// pass data to MQTT client to publish
-	MQTTUtils.Client.PublishMessage("/game/state/players/"+localShip.name, JSON.stringify(dataObj));
+	MQTTUtils.Client.PublishMessage("/"+Networking.gameName+"/state/players/"+localShip.name, JSON.stringify(dataObj));
 }

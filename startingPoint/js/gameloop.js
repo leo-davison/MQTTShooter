@@ -19,12 +19,14 @@ function setup() {
 	document.body.appendChild( GLOBALS.renderer.domElement );	
 
 	GAMESCENE.Setup();
+	Networking.Initialise();
 }
 
 function update() {
 	UTILS.updateSimulation(function(deltaTime) {
 		// do update here
-		GAMESCENE.Update(deltaTime);		
+		GAMESCENE.Update(deltaTime);
+		Networking.Update(deltaTime);		
 	});
 }
 
