@@ -5,52 +5,11 @@
 			body { 
 				margin: 0;
 				background-color: black;
-			}	
-
-			#info-panel {
-				float: left;
-				background-color: black;			
-			}
-
-			h1#info-title {
-				color: white;
-			}
-
-			canvas { 
-				float:right;
-				border-left-style: solid;
-				border-color: white;
-				border-left-width: 1px;
-			}
-
-			td#enemyPlayer {
-				color: red;
-				border-right-style: solid;
-				border-color: white;
-				border-right-width: 1px;
-				padding-right: 2px;
-			}
-
-			td#playerName {
-				color: #1fb4da;
-				border-right-style: solid;
-				border-color: white;
-				border-right-width: 1px;
-			}
-
-			td {
-				color: white;
-			}
+			}			
 		</style>
 	</head>
 
 	<body>
-		<!--<div id="info-panel">
-			<h1 id="info-title">Info</h1>
-			<table id="playerScoreTable">
-			</table>
-		</div>-->
-
 		<script src="js/thirdparty/mqttws31.js"></script>		
 		<script src="js/thirdparty/three.min.js"></script>		
 		<script src='js/thirdparty/threex.keyboardstate.js'></script>
@@ -63,6 +22,8 @@
 		<script src="js/TriangleShip.js"></script>
 		<script src="js/EnemyArrow.js"></script>
 		<script src="js/GameScene.js"></script>
+		<script src="js/Networking/MQTTClient.js"></script>
+		<script src="js/Networking/GameNetworking.js"></script>
 		<script src="js/gameloop.js"></script>				
 	</body>
 

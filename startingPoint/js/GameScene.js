@@ -24,19 +24,6 @@ var GAMESCENE = {
 		this.localPlayer = new TriangleShip(GLOBALS.playerName, 0x1fb4da);
 		this.AddTriangleShip(this.localPlayer);
 
-		// test ship for target practice
-		var extraPlayer = new TriangleShip("bob", 0xff0000);
-		extraPlayer.update = function() {};
-		extraPlayer.triangle.setRotation(45);
-		extraPlayer.triangle.setPosition(new THREE.Vector2(-350, -360));
-		this.AddTriangleShip(extraPlayer);
-
-		var extraPlayer2 = new TriangleShip("bob2", 0xff0000);
-		extraPlayer2.update = function() {};
-		extraPlayer2.triangle.setRotation(75);
-		extraPlayer2.triangle.setPosition(new THREE.Vector2(-150, -460));
-		this.AddTriangleShip(extraPlayer2);
-
 		// setup the camera
 		GLOBALS.camera = new ChaseCam(30);
 		GLOBALS.camera.setTarget(this.localPlayer.triangle);
