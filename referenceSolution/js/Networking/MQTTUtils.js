@@ -1,43 +1,16 @@
-var MQTTClient = MQTTClient || {};
+var MQTTUtils = MQTTUtils || {};
 
-MQTTClient.MessageHandlers = {
-	handlers : [],
-
-	AddHandler : function(callback) {
-		this.handlers.push(callback);
-	},
-
-	RemoveHandler : function(callback) {
-		var index = -1;
-		for (var i=0; i<this.handlers.length; i++) {
-			if (this.handlers[i] == callback) {
-				index = i;
-				break;
-			}
-		}
-
-		if (index != -1) {
-			this.handlers.splice(index,1);
-		}
-	},
-
-	handleMessage : function(message) {
-		for (var i=0; i<this.handlers.length; i++) {
-			this.handlers[i](message);
-		}
-	}
-};
-
-MQTTClient.CreateWillMessage = function(topic, msgData) {
+MQTTUtils.CreateWillMessage = function(topic, msgData) {
 	var msg = new Paho.MQTT.Message(msgData);
 	msg.destinationName = topic;
 	return msg;
 }
 
-MQTTClient.Client = {
+MQTTUtils.Client = {
 	clientID : null,
 	clientObj : null,
 	connected : false,
+	messageHandler : null,
 
 	ConnectToServer : function(clientID, server, port, willMessage, callback) {
 		this.clientID = clientID;
@@ -45,13 +18,17 @@ MQTTClient.Client = {
 		this.client.onConnectionLost = this.onConnectionLost;
 		this.client.onMessageArrived = this.onMessage;
 
-		var connectOpts = {onSuccess: function() { MQTTClient.Client.connected = true; callback();}};
+		var connectOpts = {onSuccess: function() { MQTTUtils.Client.connected = true; callback();}};
 
 		if (willMessage !== null) {
 			connectOpts.willMessage = willMessage;
 		}
 
 		this.client.connect(connectOpts);
+	},
+
+	SetMessageHandler : function(handlerFunc) {
+		this.messageHandler = handlerFunc;
 	},
 
 	SubscribeToTopic : function(topic) {
@@ -78,7 +55,9 @@ MQTTClient.Client = {
 	},
 
 	onMessage : function(message) {
-		MQTTClient.MessageHandlers.handleMessage(message);
+		if (MQTTUtils.Client.messageHandler != null) {
+			MQTTUtils.Client.messageHandler(message);
+		}
 	},
 
 	onConnectionLost : function(responseObject) {

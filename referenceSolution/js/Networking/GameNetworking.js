@@ -41,16 +41,16 @@ Networking.RemotePlayers = {
 // perform initial setup
 Networking.Initialise = function() {
 	// register message handler
-	MQTTClient.MessageHandlers.AddHandler(Networking.MessageReceived);
+	MQTTUtils.Client.SetMessageHandler(Networking.MessageReceived);	
 
 	// configure a will message
-	var willMsg = MQTTClient.CreateWillMessage("/game/state/removed/"+GLOBALS.playerName, GLOBALS.playerName);
+	var willMsg = MQTTUtils.CreateWillMessage("/game/state/removed/"+GLOBALS.playerName, GLOBALS.playerName);
 
 	// connect to the broker
-	MQTTClient.Client.ConnectToServer(GLOBALS.playerName, "bandicoot0.hursley.ibm.com", 20004, willMsg, function() {
+	MQTTUtils.Client.ConnectToServer(GLOBALS.playerName, "bandicoot0.hursley.ibm.com", 20004, willMsg, function() {
 		console.log("on connect");
 		// on connect, subscribe to all game state topics
-		MQTTClient.Client.SubscribeToTopic("/game/state/#");
+		MQTTUtils.Client.SubscribeToTopic("/game/state/#");
 	});
 
 	// grab a ref to the current addProjectile function
@@ -66,7 +66,7 @@ Networking.Initialise = function() {
 				vel : velocity
 			};
 			// send to the network
-			MQTTClient.Client.PublishMessage("/game/state/projectiles/"+GLOBALS.playerName, JSON.stringify(dataObj));
+			MQTTUtils.Client.PublishMessage("/game/state/projectiles/"+GLOBALS.playerName, JSON.stringify(dataObj));
 
 			// call through to the original function
 			ProjectileManager.originalAddProjectile(startPos, velocity, originator);
@@ -168,5 +168,5 @@ Networking.Update = function(deltaTime) {
 	};
 
 	// pass data to MQTT client to publish
-	MQTTClient.Client.PublishMessage("/game/state/players/"+localShip.name, JSON.stringify(dataObj));
+	MQTTUtils.Client.PublishMessage("/game/state/players/"+localShip.name, JSON.stringify(dataObj));
 }
