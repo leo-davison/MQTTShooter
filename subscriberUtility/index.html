@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>MQTT Subscriber App</title>
+	</head>
+
+	<body onload="onPageLoad()">
+		<script src="js/mqttws31.js"></script>
+		<script src="js/basicClient.js"></script>
+		<h1>Subscriber App</h1>
+		<hr />
+
+		<div>
+			<form>
+				Server:<input type="text" id="server-ip" /> 
+				port:<input type="number" min="1" id="server-port" /> 
+				<input id="connect-button" type="button" value="connect" onclick="connectToServer()"/>
+				<input id="disconnect-button" type="button" value="disconnect" onclick="disconnectFromServer()" hidden/>
+			</form>			
+			<form id="subscribe-form" hidden>
+				Topic string:<input type="text" id="topic" /> 
+				<input id="subsribe-button" type="button" value="add new subscription" onclick="createNewSubscription()"/>				
+			</form>
+			<hr/>
+		</div>
+
+		<div id="subscriptions" hidden>			
+			<h2>Subscriptions</h2>
+			<hr>
+		</div>
+	</body>
+
+</html> 
