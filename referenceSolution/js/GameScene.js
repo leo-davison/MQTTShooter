@@ -57,8 +57,12 @@ var GAMESCENE = {
 		ProjectileManager.update(deltaTime);
 
 		// perform collision detection between projectiles and ships
-		this.PerformCollisionDetection();
-		
+		var collisions = this.PerformCollisionDetection();
+
+		// perform collision response, if we got any collisions
+		if (collisions != null && collisions.length > 0) {
+			this.PerformCollisionResponse(collisions);
+		}
 
 		// update particle effects
 		Particles.ParticleManager.Update(deltaTime);
@@ -90,70 +94,64 @@ var GAMESCENE = {
 	},
 
 	PerformCollisionDetection : function() {
-		// list of projectiles that have collided with ships
-		var collidedProjectiles = {};
-		// list of ships in collision
-		var collidedShips = {};
+
+		// we only have responsibility for checking if the local ship has been 
+		// hit by a projectile.  So iterate over all projectiles and check for
+		// collision with the local player.
+
+		// list of all 
+		var collidedProjectiles = [];
+
+		// ignore collisions if the local ship isn't active
+		if (this.localPlayer.active === false) {
+			return;
+		}
 
 		for (var i=0; i<ProjectileManager.allProjectiles.length; i++) {
+			// grab the next projectile
 			var nextProjectile = ProjectileManager.allProjectiles[i];
 
-			// check against all ships
-			var j = 0;
-			for (var shipName in this.triShips) {
-				if (this.triShips.hasOwnProperty(shipName)) {
- 
-					// ignore collisions with the originator of this projectile.					
-					if (shipName === nextProjectile.originator) {
-						//console.log("ignoring potential collision with originator");
-						continue;
-					}
+			// ignore collisions with projectiles fired by the local player
+			if (nextProjectile.originator === this.localPlayer.name) {
+				continue;
+			}
 
-					var nextShip = this.triShips[shipName];
+			// grab the transformed triangle geometry for the ship
+			var tri = this.localPlayer.getTriangle();
 
-					// also ignore collisions against inactive ships
-					if (nextShip.active === false) {
-						//console.log("ignoring potential collision with inactive ship.");
-						continue;
-					}
+			// perform line segment / triangle intersection test.
+			// this checks if the line formed by the projectiles last position, and it's current position
+			// intersect with the triangle of the ship.  This is done to prevent 'tunnelling' of the projectile,
+			// whereby it could move from one side of the tri to the other between updates.
+			if (UTILS.intersecting(nextProjectile.getLastPosition(), nextProjectile.getPosition(), tri.a, tri.b, tri.c)) {
+				// we have a collision...
 
-					// grab the transformed triangle geometry
-					var tri = nextShip.getTriangle();
+				// create a particle effect
+				//var explosion = new Particles.Utils.ParticleExplosion(nextProjectile.getPosition(), 150);
 
-					// perform line segment / triangle intersection test.
-					// this checks if the line formed by the projectiles last position, and it's current position
-					// intersect with the triangle of the ship.  This is done to prevent 'tunnelling' of the projectile,
-					// whereby it could move from one side of the tri to the other between updates.
-					if (UTILS.intersecting(nextProjectile.getLastPosition(), nextProjectile.getPosition(), tri.a, tri.b, tri.c)) {
-						// we have a collision...
+				// note the projectile/ship in collision lists
+				collidedProjectiles.push(nextProjectile);
 
-						// create a particle effect
-						var explosion = new Particles.Utils.ParticleExplosion(nextProjectile.getPosition(), 150);
-
-						// note the projectile/ship in collision lists
-						collidedProjectiles[i] = nextProjectile;
-						collidedShips[j] = nextShip;
-
-						// we will keep checking in case there are multiple colocated ships.
-					}
-
-					j++;
-				}
-			}			
-		}
-
-		// for each projectile involved in a collision, it needs to be marked as dead
-		for (var projIndex in collidedProjectiles) {
-			if (collidedProjectiles.hasOwnProperty(projIndex)) {
-				collidedProjectiles[projIndex].onCollision();
+				// we will keep checking in case there are multiple projectiles colliding with the local ship.
 			}
 		}
 
-		// each ship involved in a collision needs to be reset
-		for (var shipIndex in collidedShips) {
-			if (collidedShips.hasOwnProperty(shipIndex)) {
-				collidedShips[shipIndex].reset();
-			}
+		// return any collisions
+		return collidedProjectiles;
+	},
+
+	// function to perform collision response for collisions between projectiles and the local ship
+	PerformCollisionResponse : function(collidedProjectiles) {
+		// need to reset the ship and create an explosion at each particle position,
+		// and inform the particles of a collision
+
+		this.localPlayer.reset();
+
+		for (var i=0; i<collidedProjectiles.length; i++) {
+			// create an explosion
+			var explosion = new Particles.Utils.ParticleExplosion(collidedProjectiles[i].getPosition(), 150);
+			// inform particle of collision
+			collidedProjectiles[i].onCollision();
 		}
 	}
 };
