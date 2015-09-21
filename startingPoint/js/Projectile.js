@@ -2,8 +2,19 @@
 var ProjectileManager = {
 	allProjectiles : [],
 
-	addProjectile : function(startPos, velocity, originator) {
-		this.allProjectiles.push(new Projectile(startPos, velocity, originator));
+
+	addProjectile : function(startPos, velocity, originator, id) {
+		this.allProjectiles.push(new Projectile(startPos, velocity, originator, id));
+	},
+
+	getProjectileWithID : function(projectileID) {
+		for (var i=0; i<this.allProjectiles.length; i++) {
+			if (this.allProjectiles[i].id === projectileID) {
+				return this.allProjectiles[i];
+			}
+		}
+
+		return null;
 	},
 
 	update : function(delta) {
@@ -31,7 +42,7 @@ var ProjectileManager = {
 /*****************************************************************************************/
 
 /**************************** Definition of Projectile Object ****************************/
-function Projectile(startPos, velocity, originator) {
+function Projectile(startPos, velocity, originator, id) {
 	var projGeom = new THREE.Geometry();
 	projGeom.vertices.push(
 		new THREE.Vector3(-2,-2,0),
@@ -48,6 +59,9 @@ function Projectile(startPos, velocity, originator) {
 
 	this.mesh = projMesh;
 	this.matrixAutoUpdate = true;
+
+	// string id for the projectile
+	this.id = id;
 
 	this.mesh.position.set(startPos.x,startPos.y,-1);
 	this.velocity = velocity;

@@ -1,6 +1,6 @@
 function ChaseCam(maxDistance) {
 	this.target = null;
-	this.camera = new THREE.OrthographicCamera(GLOBALS.screenDimensions.x / -2, GLOBALS.screenDimensions.x / 2, GLOBALS.screenDimensions.y / 2, GLOBALS.screenDimensions.y / -2, 1, 1000);
+	this.camera = new THREE.OrthographicCamera(GLOBALS.screenDimensions.x / -2, GLOBALS.screenDimensions.x / 2, GLOBALS.screenDimensions.y / 2, GLOBALS.screenDimensions.y / -2, 1, 100);
 	this.camera.position.z = 1;
 	this.maxDistance = maxDistance;
 }

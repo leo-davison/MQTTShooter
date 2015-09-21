@@ -1,7 +1,7 @@
 var Networking = Networking || {};
 
 Networking.gameName = "game_mygamename";
-Networking.server = "bandicoot0.hursley.ibm.com";
+Networking.server = "192.168.1.118";//"bandicoot0.hursley.ibm.com";
 Networking.port = 20004;
 
 // data structure tracking remote players
@@ -49,7 +49,7 @@ Networking.Initialise = function() {
 
 	// connect to the broker
 	MQTTUtils.Client.ConnectToServer(GLOBALS.playerName, Networking.server, Networking.port, function() {
-		console.log("Connected to server.");
+		console.log("on connect");
 		// on connect, subscribe to all game state topics
 		MQTTUtils.Client.SubscribeToTopic("/"+Networking.gameName+"/state/#");
 	}, "/"+Networking.gameName+"/state/removed/"+GLOBALS.playerName, GLOBALS.playerName);
@@ -59,9 +59,10 @@ Networking.Initialise = function() {
 	// add it back to the manager under a different name
 	ProjectileManager.originalAddProjectile = addProjectileFunc;
 	// override the addProjectile function with our own interceptor
-	ProjectileManager.addProjectile = function(startPos, velocity, originator) {
+	ProjectileManager.addProjectile = function(startPos, velocity, originator, id) {
 		if (originator === GLOBALS.playerName) {	
 			var dataObj = {
+				id : id,
 				pos: startPos,
 				vel : velocity
 			};
@@ -69,9 +70,39 @@ Networking.Initialise = function() {
 			MQTTUtils.Client.PublishMessage("/"+Networking.gameName+"/state/projectiles/"+GLOBALS.playerName, JSON.stringify(dataObj));
 
 			// call through to the original function
-			ProjectileManager.originalAddProjectile(startPos, velocity, originator);
+			ProjectileManager.originalAddProjectile(startPos, velocity, originator, id);
 		}
 	};
+
+
+	// override the game scene function to handle collision response so that we can
+	// intercept collision info and pass it to the network
+	var collisionResponseFunc = GAMESCENE.PerformCollisionResponse;
+	GAMESCENE.PerformCollisionResponse = function(collisions) {
+
+		console.log("send collision data!");
+		// collisions is an array of projectiles which has collided with the local
+		// player.
+		var trimmedData = [];
+
+		for (var i=0; i<collisions.length; i++) {
+			var nextProj = collisions[i];
+
+			var nextData = {
+				i : nextProj.id,
+				p : nextProj.getPosition(), 
+			};
+
+			trimmedData.push(nextData);
+		}
+
+		var dataStr = JSON.stringify(trimmedData);
+
+		MQTTUtils.Client.PublishMessage("/"+Networking.gameName+"/state/collisions/"+GLOBALS.playerName, dataStr);
+
+		GAMESCENE.originalPerformCollisionResponse(collisions);
+	};
+	GAMESCENE.originalPerformCollisionResponse = collisionResponseFunc;
 }
 
 // handle message from network
@@ -95,12 +126,32 @@ Networking.MessageReceived = function(message) {
 
 			// create a new ship object
 			var remoteShip = new TriangleShip(remoteName, 0xff0000);
-			// override the update function to remove the velocity based pos updates
-			remoteShip.update = function(deltaTime){};
+	
+			// override the ships key state update function, to remove the 
+			// local input gathering for this ship.  Key state updates will
+			// be received in messages over the network.
+			remoteShip.updateKeyState = function() {
+				// no op
+			}
+
 			// add in handler for remote updates
 			remoteShip.handleRemoteUpdate = function(data) {
-				this.triangle.setPosition(data.pos);
-				this.triangle.setRotation(data.rot);
+
+				// both message types have key data
+				this.keyState.left = data.key.left;
+				this.keyState.right = data.key.right;
+				this.keyState.up = data.key.up;
+
+				// the full sync message type will have ship
+				// position info, to ensure the local simulation
+				// of the remote ship doesn't get too far out of
+				// sync with the originators simulation.
+				if (data.type === Networking.SyncTypeFull) {
+					// overwrite pos/rot/vel data
+					this.triangle.setPosition(data.pos);
+					this.triangle.setRotation(data.rot);
+					this.velocity.set(data.vel.x, data.vel.y, data.vel.z);
+				}
 			}
 
 			// add the ship object to the remote players
@@ -115,6 +166,37 @@ Networking.MessageReceived = function(message) {
 		Networking.RemotePlayers.handleUpdateMessage(remoteName,dataObj);
 
 		return;
+	}
+
+	// is this collision info?
+	if (topic.indexOf("/"+Networking.gameName+"/state/collisions") >= 0) {
+		// data will be an array of collisions against the ship called 'remoteName'
+		console.log("collision data received.");
+
+		var dataArray = JSON.parse(message.payloadString);
+
+		for (var i=0; i<dataArray.length; i++) {
+			// next collision obj
+			var nextCollision = dataArray[i];
+			var projectileID = nextCollision.i;
+			var projectilePos = nextCollision.p;
+
+			// find and destroy projectile
+			var proj = ProjectileManager.getProjectileWithID(projectileID);
+			if (proj != null) {
+				proj.onCollision();
+			}
+
+			// create explosion
+			var explosion = new Particles.Utils.ParticleExplosion(projectilePos, 150);
+		}
+
+		// find remote ship and reset
+		var remoteShip = Networking.RemotePlayers.getShipRef(remoteName);
+
+		if (remoteShip != null) {
+			remoteShip.reset();
+		}
 	}
 
 	// is this a player exit message?
@@ -137,10 +219,15 @@ Networking.MessageReceived = function(message) {
 	if (topic.indexOf("/"+Networking.gameName+"/state/projectiles") >= 0) {
 		var dataObj = JSON.parse(message.payloadString);
 		// call through to original method, bypassing our redirect...
-		ProjectileManager.originalAddProjectile(dataObj.pos, dataObj.vel, remoteName);
+		ProjectileManager.originalAddProjectile(dataObj.pos, dataObj.vel, remoteName, dataObj.id);
 		return;
 	}
 };
+
+// after how many seconds should we sync the full local ship state
+Networking.FullSyncInterval = 0.5;
+Networking.SyncTypeKey = 0;
+Networking.SyncTypeFull = 1;
 
 // handle pushing local data to network
 Networking.Update = function(deltaTime) {
@@ -152,14 +239,60 @@ Networking.Update = function(deltaTime) {
 		return;
 	}
 
-	// create an object to send on the network with the position and rotation of the
-	// local player ship
-	var dataObj = {
-		name : localShip.name,
-		pos: localShip.triangle.getPosition(),
-		rot: localShip.triangle.getRotation()
-	};
+	// have we added a last key state?
+	if (localShip.hasOwnProperty("lastKeyState") === false) {
+		console.log("initial setup");
+		// perform some initialsetup.
+		localShip.lastKeyState = {
+			left : localShip.keyState.left,
+			right : localShip.keyState.right,
+			up : localShip.keyState.up
+		};			
+		localShip.lastFullNetworkSync = -1;
+	}
 
-	// pass data to MQTT client to publish
-	MQTTUtils.Client.PublishMessage("/"+Networking.gameName+"/state/players/"+localShip.name, JSON.stringify(dataObj));
+	// do we need to perform a full sync?
+	if (localShip.lastFullNetworkSync === -1 || localShip.lastFullNetworkSync >= Networking.FullSyncInterval) {
+		// do full sync
+		var fullSyncData = {
+			type : Networking.SyncTypeFull,
+			pos  : localShip.triangle.getPosition(),
+			rot  : localShip.triangle.getRotation(),
+			vel  : localShip.velocity,
+			key  : localShip.keyState
+		};
+
+		// pass data to network
+		MQTTUtils.Client.PublishMessage("/"+Networking.gameName+"/state/players/"+localShip.name, JSON.stringify(fullSyncData));
+
+		// note that we've updated
+		localShip.lastFullNetworkSync = 0;
+		localShip.lastKeyState.left = localShip.keyState.left;
+		localShip.lastKeyState.right = localShip.keyState.right;
+		localShip.lastKeyState.up = localShip.keyState.up;
+
+		
+	} else {
+		// update the time since full sync
+		localShip.lastFullNetworkSync += deltaTime;
+
+		// has the keyboard state changed?
+		if ((localShip.lastKeyState.left !== localShip.keyState.left) ||
+			(localShip.lastKeyState.right !== localShip.keyState.right) ||
+			(localShip.lastKeyState.up !== localShip.keyState.up)) {			
+			// key state has changed, so update network
+			var keyStateSyncData = {
+				type : Networking.SyncTypeKey,
+				key  : localShip.keyState
+			};
+
+			// update last known key state
+			localShip.lastKeyState.left = localShip.keyState.left;
+			localShip.lastKeyState.right = localShip.keyState.right;
+			localShip.lastKeyState.up = localShip.keyState.up;
+			
+			// send to network
+			MQTTUtils.Client.PublishMessage("/"+Networking.gameName+"/state/players/"+localShip.name, JSON.stringify(keyStateSyncData));
+		}
+	}
 }

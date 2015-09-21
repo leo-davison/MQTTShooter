@@ -2,7 +2,7 @@
 // colour : colour of the onscreen triangle that represents the ship
 function TriangleShip(name, colour) {
 	// constant force that can be applied
-	this.UPFORCE = new THREE.Vector2(0,1000);
+	this.UPFORCE = new THREE.Vector2(0,25000);
 
 	this.name = name;
 	// triangle to provide the onscreen representation of the ship
@@ -20,6 +20,24 @@ function TriangleShip(name, colour) {
 
 	// track the last time we fired a projectile
 	this.lastFired = 10;
+	// counter used to create projectile ids.
+	this.projectileCounter = 0;
+
+	// state of controls
+	this.keyState = {
+		left  : false,
+		right : false,
+		up    : false,
+		space : false
+	};
+
+	this.updateKeyState = function() {
+		// update key state based on local input
+		this.keyState.left = GLOBALS.keyboard.pressed("left");
+		this.keyState.right = GLOBALS.keyboard.pressed("right");
+		this.keyState.up = GLOBALS.keyboard.pressed("up");
+		this.keyState.space = GLOBALS.keyboard.pressed("space");
+	}
 
 	this.update = function(deltaTime) {
 		// do we have an object which will give us an updated position?
@@ -27,11 +45,14 @@ function TriangleShip(name, colour) {
 			return;
 		}
 
+		// grab updated keyboard state
+		this.updateKeyState();
+
 		// grab the current rotation of the tri
 		var currentRotation = this.triangle.getRotation();
 
 		// update rotation
-		if (GLOBALS.keyboard.pressed("left")) {
+		if (this.keyState.left) {
 			currentRotation += (90*deltaTime);
 			// ensure rotation is between 0-360
 			if (currentRotation > 360) {
@@ -39,7 +60,7 @@ function TriangleShip(name, colour) {
 			}
 		}
 
-		if (GLOBALS.keyboard.pressed("right")) {
+		if (this.keyState.right) {
 			currentRotation -= (90*deltaTime);
 			// ensure rotation is between 0-360
 			if (currentRotation < 0) {
@@ -54,7 +75,7 @@ function TriangleShip(name, colour) {
 		var thisForce = new THREE.Vector2(0,0);
 
 		// are we applying thrust?
-		if (GLOBALS.keyboard.pressed("up")) {
+		if (this.keyState.up) {
 			thisForce.add(this.UPFORCE);
 		}
 
@@ -69,14 +90,14 @@ function TriangleShip(name, colour) {
 		// calc new velocity
 		this.velocity.add( (acceleration.multiplyScalar(deltaTime)) );
 		// clamp velocity
-		this.velocity.clamp(new THREE.Vector3(-4,-4,-4), new THREE.Vector3(4,4,4));
+		//this.velocity.clamp(new THREE.Vector3(-4,-4,-4), new THREE.Vector3(4,4,4));
 
 		// grab the current position from the tri
 		var currentPosition = this.triangle.getPosition();
 
 		// update the position from the velocity
-		currentPosition.x += this.velocity.x;
-		currentPosition.y += this.velocity.y;
+		currentPosition.x += (this.velocity.x*deltaTime);
+		currentPosition.y += (this.velocity.y*deltaTime);
 
 		// apply the updated positon back to the tri
 		this.triangle.setPosition(currentPosition);
@@ -85,15 +106,19 @@ function TriangleShip(name, colour) {
 		this.lastFired += deltaTime;
 
 		// is the user pressing the fire key?
-		if (GLOBALS.keyboard.pressed("space")) {
+		if (this.keyState.space) {
 			// has there been enough time since we last fired?
 			if (this.lastFired >= 0.2) {
 				// fire a projectile
 				// calculate a velocity for the projectile in the current heading
 				var projVel = new THREE.Vector3(0,600,0);		
 				projVel.applyQuaternion(quat);
+
+				// create a unique identifier for the projectile
+				var projectileID = "proj_"+this.name+"_"+this.projectileCounter;
+				this.projectileCounter++;
 				
-				ProjectileManager.addProjectile(currentPosition, projVel, this.name);
+				ProjectileManager.addProjectile(currentPosition, projVel, this.name, projectileID);
 
 				// reset timer so we can't fire again right away
 				this.lastFired = 0;

@@ -26,7 +26,7 @@ function update() {
 	UTILS.updateSimulation(function(deltaTime) {
 		// do update here
 		GAMESCENE.Update(deltaTime);
-		Networking.Update(deltaTime);		
+		Networking.Update(deltaTime);	
 	});
 }
 
