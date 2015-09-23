@@ -1,7 +1,7 @@
 var Networking = Networking || {};
 
 Networking.gameName = "game_mygamename";
-Networking.server = "192.168.1.118";//"bandicoot0.hursley.ibm.com";
+Networking.server = "bandicoot0.hursley.ibm.com";
 Networking.port = 20004;
 
 // data structure tracking remote players
@@ -42,6 +42,8 @@ Networking.RemotePlayers = {
 	}
 }
 
+Networking.localProjectiles = [];
+
 // perform initial setup
 Networking.Initialise = function() {
 	// register message handler
@@ -71,6 +73,9 @@ Networking.Initialise = function() {
 
 			// call through to the original function
 			ProjectileManager.originalAddProjectile(startPos, velocity, originator, id);
+
+			// keep track of local projectile ids			
+			Networking.localProjectiles.push(id);
 		}
 	};
 
@@ -170,8 +175,7 @@ Networking.MessageReceived = function(message) {
 
 	// is this collision info?
 	if (topic.indexOf("/"+Networking.gameName+"/state/collisions") >= 0) {
-		// data will be an array of collisions against the ship called 'remoteName'
-		console.log("collision data received.");
+		// data will be an array of collisions against the ship called 'remoteName'		
 
 		var dataArray = JSON.parse(message.payloadString);
 
@@ -199,6 +203,20 @@ Networking.MessageReceived = function(message) {
 		}
 	}
 
+	// is this a projectile position sync?
+	if (topic.indexOf("/"+Networking.gameName+"/state/projectileUpdates/") >= 0) {
+		// parse the data
+		var dataObj = JSON.parse(message.payloadString);
+
+		// do we have an associated projectile?
+		var theProj = ProjectileManager.getProjectileWithID(dataObj.i);
+
+		if (theProj !== null) {
+			theProj.handleRemoteUpdate(dataObj);
+		}
+	}	
+
+
 	// is this a player exit message?
 	if (topic.indexOf("/"+Networking.gameName+"/state/removed") >= 0) {
 		console.log("remove player " + remoteName);
@@ -220,6 +238,16 @@ Networking.MessageReceived = function(message) {
 		var dataObj = JSON.parse(message.payloadString);
 		// call through to original method, bypassing our redirect...
 		ProjectileManager.originalAddProjectile(dataObj.pos, dataObj.vel, remoteName, dataObj.id);
+
+		// grab the newly added projectile and add in a remote update handler
+		var newProj = ProjectileManager.getProjectileWithID(dataObj.id);
+
+		if (newProj !== null) {
+			newProj.handleRemoteUpdate = function(dataObj) {				
+				this.mesh.position = dataObj.p;
+				this.lastPosition.set(dataObj.l.x, dataObj.l.y, dataObj.l.z);				
+			}
+		}
 		return;
 	}
 };
@@ -228,6 +256,10 @@ Networking.MessageReceived = function(message) {
 Networking.FullSyncInterval = 0.5;
 Networking.SyncTypeKey = 0;
 Networking.SyncTypeFull = 1;
+
+Networking.SyncProjectiles = false;
+Networking.ProjectileSyncInterval = 0.125;
+Networking.LastProjectileSync = -1;
 
 // handle pushing local data to network
 Networking.Update = function(deltaTime) {
@@ -270,8 +302,6 @@ Networking.Update = function(deltaTime) {
 		localShip.lastKeyState.left = localShip.keyState.left;
 		localShip.lastKeyState.right = localShip.keyState.right;
 		localShip.lastKeyState.up = localShip.keyState.up;
-
-		
 	} else {
 		// update the time since full sync
 		localShip.lastFullNetworkSync += deltaTime;
@@ -294,5 +324,36 @@ Networking.Update = function(deltaTime) {
 			// send to network
 			MQTTUtils.Client.PublishMessage("/"+Networking.gameName+"/state/players/"+localShip.name, JSON.stringify(keyStateSyncData));
 		}
+	}
+
+	// do we need to send local projetile position data?
+	if (Networking.SyncProjectiles === true && (Networking.LastProjectileSync === -1 || Networking.LastProjectileSync >= Networking.ProjectileSyncInterval)) {
+		var deadProjectiles = [];
+		for (var i=0; i<Networking.localProjectiles.length; i++) {
+			var nextProjectile = ProjectileManager.getProjectileWithID(Networking.localProjectiles[i]);
+
+			// if we get null back, then this projectile must be gone.
+			// make a note of the index, so we can splice it out of the list.			
+			if (nextProjectile === null) {
+				deadProjectiles.push(i);
+				continue;
+			}
+			
+			// it must still be around... send an update of the position
+			var data = {
+				i : nextProjectile.id,
+				l : nextProjectile.getLastPosition(),
+				p : nextProjectile.getPosition()
+			};
+
+			MQTTUtils.Client.PublishMessage("/"+Networking.gameName+"/state/projectileUpdates/"+localShip.name, JSON.stringify(data));
+		}
+
+		// remove ids of dead projectiles
+		for (var i=deadProjectiles.length-1; i>=0; i--) {
+			Networking.localProjectiles.splice(deadProjectiles[i], 1);
+		}
+	} else {
+		Networking.LastProjectileSync += deltaTime;
 	}
 }

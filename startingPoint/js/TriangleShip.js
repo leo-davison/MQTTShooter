@@ -90,7 +90,7 @@ function TriangleShip(name, colour) {
 		// calc new velocity
 		this.velocity.add( (acceleration.multiplyScalar(deltaTime)) );
 		// clamp velocity
-		//this.velocity.clamp(new THREE.Vector3(-4,-4,-4), new THREE.Vector3(4,4,4));
+		this.velocity.clamp(new THREE.Vector3(-400,-400,-400), new THREE.Vector3(400,400,400));
 
 		// grab the current position from the tri
 		var currentPosition = this.triangle.getPosition();
@@ -123,7 +123,7 @@ function TriangleShip(name, colour) {
 				// reset timer so we can't fire again right away
 				this.lastFired = 0;
 			}
-		}
+		}		
 	}
 
 	this.getTriangle = function() {
@@ -135,6 +135,7 @@ function TriangleShip(name, colour) {
 		this.triangle.setHidden(true);
 		this.triangle.setPosition(new THREE.Vector2(0,0));
 		this.triangle.setRotation(0);
+		this.velocity.set(0,0,0);
 		this.active = false;
 
 		var theShip = this;

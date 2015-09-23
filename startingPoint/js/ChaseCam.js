@@ -1,6 +1,6 @@
 function ChaseCam(maxDistance) {
 	this.target = null;
-	this.camera = new THREE.OrthographicCamera(GLOBALS.screenDimensions.x / -2, GLOBALS.screenDimensions.x / 2, GLOBALS.screenDimensions.y / 2, GLOBALS.screenDimensions.y / -2, 1, 100);
+	this.camera = new THREE.OrthographicCamera(GLOBALS.screenDimensions.x / -2, GLOBALS.screenDimensions.x / 2, GLOBALS.screenDimensions.y / 2, GLOBALS.screenDimensions.y / -2, 1, 100);	
 	this.camera.position.z = 1;
 	this.maxDistance = maxDistance;
 }
@@ -22,7 +22,7 @@ ChaseCam.prototype.update = function(deltaTime) {
 	if (distance >= this.maxDistance) {
 		var tVec = new THREE.Vector2(0,0);
 		tVec.subVectors(tPos, camPos);
-		tVec.multiplyScalar(deltaTime);
+		tVec.multiplyScalar(deltaTime*2);
 		this.camera.position.x += tVec.x;
 		this.camera.position.y += tVec.y;
 	}

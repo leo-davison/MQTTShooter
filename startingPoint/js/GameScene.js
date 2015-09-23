@@ -35,7 +35,7 @@ var GAMESCENE = {
 	// update the scene
 	Update : function(deltaTime) {
 
-		var shipArray = [this.localPlayer.triangle];
+		var shipArray = [this.localPlayer];
 
 		// update the bounding area
 		this.bounds.update(shipArray);
@@ -99,7 +99,7 @@ var GAMESCENE = {
 		// hit by a projectile.  So iterate over all projectiles and check for
 		// collision with the local player.
 
-		// list of all 
+		// list of all projectiles involved in collisions.
 		var collidedProjectiles = [];
 
 		// ignore collisions if the local ship isn't active
@@ -123,17 +123,11 @@ var GAMESCENE = {
 			// this checks if the line formed by the projectiles last position, and it's current position
 			// intersect with the triangle of the ship.  This is done to prevent 'tunnelling' of the projectile,
 			// whereby it could move from one side of the tri to the other between updates.
-			if (UTILS.intersecting(nextProjectile.getLastPosition(), nextProjectile.getPosition(), tri.a, tri.b, tri.c)) {
-				// we have a collision...
-
-				// create a particle effect
-				//var explosion = new Particles.Utils.ParticleExplosion(nextProjectile.getPosition(), 150);
-
+			if (UTILS.intersecting(nextProjectile.getLastPosition(), nextProjectile.getPosition(), tri.a, tri.b, tri.c)) {				
 				// note the projectile/ship in collision lists
 				collidedProjectiles.push(nextProjectile);
-
-				// we will keep checking in case there are multiple projectiles colliding with the local ship.
-			}
+			}			
+			// we will keep checking in case there are multiple projectiles colliding with the local ship.
 		}
 
 		// return any collisions
