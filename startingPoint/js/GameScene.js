@@ -33,12 +33,9 @@ var GAMESCENE = {
 	},
 
 	// update the scene
-	Update : function(deltaTime) {
-
-		var shipArray = [this.localPlayer];
-
-		// update the bounding area
-		this.bounds.update(shipArray);
+	Update : function(deltaTime) {	
+		// clamp all the ships to the game bounding area
+		this.bounds.update(this.triShips);
 
 		// update all the ships
 		for (var ship in this.triShips) {
