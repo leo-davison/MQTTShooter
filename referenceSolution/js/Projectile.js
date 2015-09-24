@@ -56,7 +56,6 @@ function Projectile(startPos, velocity, originator, id) {
 
 	var projMat = new THREE.MeshBasicMaterial( { color: 0x00ff00 } );
 	var projMesh = new THREE.Mesh(projGeom, projMat);
-
 	this.mesh = projMesh;
 	this.matrixAutoUpdate = true;
 

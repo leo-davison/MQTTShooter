@@ -130,8 +130,7 @@ function TriangleShip(name, colour) {
 		return this.triangle.getTriangle();
 	}
 
-	this.reset = function() {
-		console.log(this.name + ": reset");
+	this.reset = function() {		
 		this.triangle.setHidden(true);
 		this.triangle.setPosition(new THREE.Vector2(0,0));
 		this.triangle.setRotation(0);

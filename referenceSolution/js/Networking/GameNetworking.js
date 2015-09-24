@@ -50,11 +50,7 @@ Networking.Initialise = function() {
 	MQTTUtils.Client.SetMessageHandler(Networking.MessageReceived);	
 
 	// connect to the broker
-	MQTTUtils.Client.ConnectToServer(GLOBALS.playerName, Networking.server, Networking.port, function() {
-		console.log("on connect");
-		// on connect, subscribe to all game state topics
-		MQTTUtils.Client.SubscribeToTopic("/"+Networking.gameName+"/state/#");
-	}, "/"+Networking.gameName+"/state/removed/"+GLOBALS.playerName, GLOBALS.playerName);
+	MQTTUtils.Client.ConnectToServer(GLOBALS.playerName, Networking.server, Networking.port, Networking.OnConnect, Networking.OnConnectionLost, "/"+Networking.gameName+"/state/removed/"+GLOBALS.playerName, GLOBALS.playerName);
 
 	// grab a ref to the current addProjectile function
 	var addProjectileFunc = ProjectileManager.addProjectile;
@@ -84,8 +80,6 @@ Networking.Initialise = function() {
 	// intercept collision info and pass it to the network
 	var collisionResponseFunc = GAMESCENE.PerformCollisionResponse;
 	GAMESCENE.PerformCollisionResponse = function(collisions) {
-
-		console.log("send collision data!");
 		// collisions is an array of projectiles which has collided with the local
 		// player.
 		var trimmedData = [];
@@ -108,6 +102,21 @@ Networking.Initialise = function() {
 		GAMESCENE.originalPerformCollisionResponse(collisions);
 	};
 	GAMESCENE.originalPerformCollisionResponse = collisionResponseFunc;
+}
+
+Networking.connected = false;
+
+Networking.OnConnect = function() {
+	console.log("on connect");		
+	// on connect, subscribe to all game state topics
+	MQTTUtils.Client.SubscribeToTopic("/"+Networking.gameName+"/state/#");
+	// flag that we are connected
+	Networking.connected = true;
+}
+
+Networking.OnConnectionLost = function() {
+	console.log("connection lost");
+	Networking.connected = false;
 }
 
 // handle message from network
@@ -187,8 +196,10 @@ Networking.MessageReceived = function(message) {
 
 			// find and destroy projectile
 			var proj = ProjectileManager.getProjectileWithID(projectileID);
+			var orig = "unknown";
 			if (proj != null) {
 				proj.onCollision();
+				orig = proj.originator;
 			}
 
 			// create explosion
@@ -199,6 +210,7 @@ Networking.MessageReceived = function(message) {
 		var remoteShip = Networking.RemotePlayers.getShipRef(remoteName);
 
 		if (remoteShip != null) {
+			console.log(remoteName + " was destroyed by " + orig);
 			remoteShip.reset();
 		}
 	}
@@ -225,8 +237,7 @@ Networking.MessageReceived = function(message) {
 		// remove the remote player ref
 		Networking.RemotePlayers.removePlayer(remoteName);
 		// remove the ship from the game scene
-		if (ship !== null) {
-			console.log("Removing tri ship for" + remoteName);
+		if (ship !== null) {			
 			GAMESCENE.RemoveTriangleShip(ship);
 		}	
 
@@ -263,6 +274,11 @@ Networking.LastProjectileSync = -1;
 
 // handle pushing local data to network
 Networking.Update = function(deltaTime) {
+	// did we connect?
+	if (Networking.connected === false) {
+		// no, so don't bother trying to send any data
+		return;
+	}
 	// grab local player ship data and send
 	var localShip = GAMESCENE.localPlayer;
 
@@ -272,8 +288,7 @@ Networking.Update = function(deltaTime) {
 	}
 
 	// have we added a last key state?
-	if (localShip.hasOwnProperty("lastKeyState") === false) {
-		console.log("initial setup");
+	if (localShip.hasOwnProperty("lastKeyState") === false) {		
 		// perform some initialsetup.
 		localShip.lastKeyState = {
 			left : localShip.keyState.left,
