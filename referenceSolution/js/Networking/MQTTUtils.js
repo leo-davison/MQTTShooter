@@ -62,8 +62,7 @@ MQTTUtils.Client = {
 	// 'messageData' in the message body, and then publishes
 	// that message to the topic specified in 'topic'
 	PublishMessage : function(topic, messageData) {		
-		var msg = new Paho.MQTT.Message(messageData);
-		msg.qos = 0;
+		var msg = new Paho.MQTT.Message(messageData);		
 		msg.destinationName = topic;
 		this.client.send(msg);
 	},
