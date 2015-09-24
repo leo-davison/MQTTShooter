@@ -57,6 +57,19 @@ MQTTUtils.Client = {
 	// lost.  We will attempt to reconnect to the server using the same details
 	// and options from the first connect call.
 	onConnectionLost : function(responseObject) {
-		console.log("TODO: handle lost connection");
+		if (responseObject.errorCode !== 0) {
+   			console.log("onConnectionLost:"+responseObject.errorMessage);
+   			MQTTUtils.Client.userOnConnectionLost();
+
+   			// create a new connection options object using
+   			// the original parameters
+   			var connectOpts = {
+   				onSuccess : MQTTUtils.Client.userOnConnect,
+   				willMessage : MQTTUtils.Client.willMessage
+   			};
+
+   			// reconnect
+   			MQTTUtils.Client.client.connect(connectOpts);
+  		}
 	}
 };
