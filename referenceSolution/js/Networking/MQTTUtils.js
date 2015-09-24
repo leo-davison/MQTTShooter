@@ -76,13 +76,17 @@ MQTTUtils.Client = {
 		this.client.subscribe(topic);		
 	},
 
-	// The internal callback 
+	// The callback which we will configure to be by the Paho.MQTT.Client object
+	// every time a message is received
 	onMessage : function(message) {
 		if (MQTTUtils.Client.messageHandler != null) {
 			MQTTUtils.Client.messageHandler(message);
 		}
 	},
 
+	// The callback which we will configure to be called when a connection is 
+	// lost.  We will attempt to reconnect to the server using the same details
+	// and options from the first connect call.
 	onConnectionLost : function(responseObject) {
 		if (responseObject.errorCode !== 0) {
    			console.log("onConnectionLost:"+responseObject.errorMessage);

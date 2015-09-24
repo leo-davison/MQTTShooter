@@ -78,8 +78,7 @@ var GAMESCENE = {
 
 	// remove a given ship from the scene
 	RemoveTriangleShip : function(ship) {
-		if (this.triShips.hasOwnProperty(ship.name)) {
-			console.log("removing tri ship from scene");
+		if (this.triShips.hasOwnProperty(ship.name)) {			
 			// make the ship properly dead
 			ship.permaDead = true;
 			ship.reset();
@@ -141,6 +140,7 @@ var GAMESCENE = {
 		for (var i=0; i<collidedProjectiles.length; i++) {
 			// create an explosion
 			var explosion = new Particles.Utils.ParticleExplosion(collidedProjectiles[i].getPosition(), 150);
+			console.log(this.localPlayer.name + " was destroyed by " + collidedProjectiles[i].originator);
 			// inform particle of collision
 			collidedProjectiles[i].onCollision();
 		}
