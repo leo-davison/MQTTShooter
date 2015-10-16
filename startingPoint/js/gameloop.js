@@ -37,6 +37,9 @@ function mainLoop() {
 }
 
 // setup and start the game
-setup();
-mainLoop();
+function startGame() {
+	setup();
+	mainLoop();	
+}
+
 
