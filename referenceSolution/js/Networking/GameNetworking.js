@@ -1,8 +1,8 @@
 var Networking = Networking || {};
 
 Networking.gameName = "game_mygamename";
-Networking.server = "bandicoot0.hursley.ibm.com";
-Networking.port = 20004;
+Networking.server = "messagesight.demos.ibm.com";
+Networking.port = 1883;
 
 // data structure tracking remote players
 Networking.RemotePlayers = {
